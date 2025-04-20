@@ -1,27 +1,25 @@
+import { createServerApiClient } from "@/utils/serverApiClient";
 import { NextResponse, NextRequest } from "next/server";
-import { cookies } from "next/headers";
-import apiClient from "@/utils/apiClient";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(req: NextRequest) {
 	try {
-		const cookieStore = await cookies();
-		const accessToken = cookieStore.get("ghl_access_token")?.value;
+		const url = new URL(req.url);
+		const locationId = url.searchParams.get("locationId");
 
-		if (!accessToken) {
-			return NextResponse.json({ error: "Not Authenticated" }, { status: 401 });
+		if (!locationId) {
+			return NextResponse.json(
+				{
+					error: "Location ID is required",
+					message: "Please specify a locationId query parameters",
+				},
+				{ status: 400 }
+			);
 		}
 
+		const apiClient = createServerApiClient();
+
 		const response = await apiClient.get(
-			"https://services.leadconnectorhq.com/locations/search",
-			{
-				headers: {
-					Authorization: `Bearer ${accessToken}`,
-				},
-				params: {
-					limit: 5,
-				},
-			}
+			`https://services.leadconnectorhq.com/businesses/${locationId}`
 		);
 
 		return NextResponse.json({
@@ -32,10 +30,14 @@ export async function GET(req: NextRequest) {
 	} catch (err: any) {
 		console.error("GHL API test error", err.response?.data || err.message);
 
-		if (err.response?.status === 401) {
+		if (err.response) {
 			return NextResponse.json(
-				{ error: "Token expired, please re-authenticate" },
-				{ status: 401 }
+				{
+					error: `API error: ${err.response.status}`,
+					message: err.response.data?.message || "Error unknown",
+					details: err.response.data,
+				},
+				{ status: err.response.status }
 			);
 		}
 
