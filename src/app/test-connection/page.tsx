@@ -4,7 +4,7 @@ import { getAuthUrl } from "@/utils/apiClient";
 
 export default function TestConnection() {
 	const [status, setStatus] = useState<string>("Not Connected");
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 	const [tokenData, setTokenData] = useState<any>(null);
 
 	const initiateAuth = () => {
