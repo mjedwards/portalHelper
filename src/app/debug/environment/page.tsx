@@ -23,8 +23,8 @@ export default function EnvironmentDebug() {
 					</h2>
 					<ul className='space-y-2'>
 						<li>
-							<strong>NEXT_PUBLIC_GHL_CLIENT_ID:</strong>{" "}
-							{process.env.NEXT_PUBLIC_GHL_CLIENT_ID || "Not set"}
+							<strong>NEXT_PUBLIC_GHL_CLIENT_ID_V2:</strong>{" "}
+							{process.env.NEXT_PUBLIC_GHL_CLIENT_ID_V2 || "Not set"}
 						</li>
 						<li>
 							<strong>NEXT_PUBLIC_GHL_REDIRECT_URI:</strong>{" "}
@@ -33,8 +33,8 @@ export default function EnvironmentDebug() {
 					</ul>
 
 					<p className='mt-4 text-amber-600'>
-						Note: Private variables like GHL_CLIENT_SECRET cannot be displayed
-						in the browser.
+						Note: Private variables like GHL_CLIENT_SECRET_V2 cannot be
+						displayed in the browser.
 					</p>
 				</div>
 			)}
@@ -48,7 +48,7 @@ export default function EnvironmentDebug() {
 
 				<button
 					onClick={() => {
-						const clientId = process.env.NEXT_PUBLIC_GHL_CLIENT_ID;
+						const clientId = process.env.NEXT_PUBLIC_GHL_CLIENT_ID_V2;
 						const redirectUri = encodeURIComponent(
 							process.env.NEXT_PUBLIC_GHL_REDIRECT_URI || ""
 						);

@@ -11,11 +11,18 @@ import {
 
 export async function POST(req: NextRequest) {
 	try {
-		const { code } = await req.json();
-
+		const { code, companyId } = await req.json();
+		
 		if (!code) {
 			return NextResponse.json(
 				{ error: "No authorization code provided" },
+				{ status: 400 }
+			);
+		}
+
+		if (!companyId) {
+			return NextResponse.json(
+				{ error: "No company ID provided" },
 				{ status: 400 }
 			);
 		}
@@ -26,12 +33,16 @@ export async function POST(req: NextRequest) {
 		await setTokens(
 			tokenData.access_token,
 			tokenData.refresh_token,
-			tokenData.expires_in
+			tokenData.expires_in,
+			companyId
 		);
 
 		// Fetch and store locations after successful authentication
 		try {
-			const locations = await fetchInstalledLocations(tokenData.access_token);
+			const locations = await fetchInstalledLocations(
+				tokenData.access_token,
+				companyId
+			);
 			await storeInstalledLocations(locations);
 		} catch (locErr: any) {
 			console.error("Failed to fetch locations:", locErr);

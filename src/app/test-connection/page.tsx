@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useState } from "react";
-import { getAuthUrl } from "@/utils/apiClient";
+import { getAuthUrl } from "@/utils/api/authUtils.client";
 
 export default function TestConnection() {
 	const [status, setStatus] = useState<string>("Not Connected");
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 	const [tokenData, setTokenData] = useState<any>(null);
 
 	const initiateAuth = () => {
