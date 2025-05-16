@@ -1,41 +1,66 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse, NextRequest } from "next/server";
-import { cookies } from "next/headers";
-import apiClient from "@/utils/apiClient";
+import { getDefaultLocation } from "@/utils/api/authUtils.server";
+import GhlService from "@/utils/api/ghlService"; // Changed from { GhlService }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(req: NextRequest) {
 	try {
-		const cookieStore = await cookies();
-		const accessToken = cookieStore.get("ghl_access_token")?.value;
+		const url = new URL(req.url);
+		let locationId = url.searchParams.get("locationId");
 
-		if (!accessToken) {
-			return NextResponse.json({ error: "Not Authenticated" }, { status: 401 });
+		// If no locationId provided, try to get it from the default location
+		if (!locationId) {
+			const defaultLocation = await getDefaultLocation();
+			locationId = defaultLocation ?? null;
+			console.log("Using default location:", locationId);
 		}
 
-		const response = await apiClient.get(
-			"https://services.leadconnectorhq.com/locations/search",
-			{
-				headers: {
-					Authorization: `Bearer ${accessToken}`,
+		console.log(locationId, "location id");
+		if (!locationId) {
+			return NextResponse.json(
+				{
+					error: "Location ID is required",
+					message:
+						"Please specify a locationId query parameter or select a location first",
 				},
-				params: {
-					limit: 5,
-				},
-			}
-		);
+				{ status: 400 }
+			);
+		}
+
+		// Use the GhlService to fetch business details
+		const businessData = await GhlService.getBusinessDetails(locationId);
 
 		return NextResponse.json({
 			success: true,
-			data: response.data,
+			data: businessData,
 		});
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	} catch (err: any) {
 		console.error("GHL API test error", err.response?.data || err.message);
 
-		if (err.response?.status === 401) {
+		// Special handling for scope issues
+		if (
+			err.response?.data?.message?.includes("scope") ||
+			err.response?.data?.error?.includes("scope")
+		) {
 			return NextResponse.json(
-				{ error: "Token expired, please re-authenticate" },
-				{ status: 401 }
+				{
+					error: "Authorization scope issue",
+					message:
+						"The token is not authorized for this scope. Make sure 'businesses.readonly' scope is included in your app configuration.",
+					details: err.response?.data,
+				},
+				{ status: err.response?.status || 403 }
+			);
+		}
+
+		if (err.response) {
+			return NextResponse.json(
+				{
+					error: `API error: ${err.response.status}`,
+					message: err.response.data?.message || "Error unknown",
+					details: err.response.data,
+				},
+				{ status: err.response.status }
 			);
 		}
 

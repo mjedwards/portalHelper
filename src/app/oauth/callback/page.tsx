@@ -1,71 +1,74 @@
-'use client'
+"use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function OAuthCallback () {
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const [status, setStatus] = useState<string>('Processing...');
-    const [error, setError] = useState<string | null>(null);
+export default function CallbackPage() {
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const [error, setError] = useState<string | null>(null);
+	const code = searchParams.get("code");
 
-    useEffect(() => {
-        async function processCode() {
-            const code = searchParams.get('code');
+	useEffect(() => {
+		const exchangeCode = async () => {
+			if (!code) {
+				setError("No authorization code received");
+				return;
+			}
 
-            if (!code) {
-                setError('No authorization code received');
-                return;
-            }
+			try {
+				// Send code to our API endpoint
+				const response = await fetch("/api/auth/callback", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ code }),
+				});
 
-            try {
-                setStatus('Exchanging code for token...');
+				if (!response.ok) {
+					const data = await response.json();
+					setError(data.error || "Failed to exchange code for token");
+					return;
+				}
 
-                const response = await fetch('/api/auth/exchange-code', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({code}),
-                });
+				// Redirect to dashboard after successful auth
+				router.push("/dashboard");
+			} catch (err) {
+				console.error("Error during code exchange:", err);
+				setError("Failed to complete authentication");
+			}
+		};
 
-                const data = await response.json();
+		exchangeCode();
+	}, [code, router]);
 
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to exchange code for tokens');
-                }
+	if (error) {
+		return (
+			<div className='flex min-h-screen items-center justify-center'>
+				<div className='max-w-md p-8 bg-red-50 rounded-lg border border-red-200'>
+					<h1 className='text-xl font-semibold text-red-700'>
+						Authentication Error
+					</h1>
+					<p className='mt-2 text-red-600'>{error}</p>
+					<button
+						onClick={() => router.push("/login")}
+						className='mt-4 bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700'>
+						Back to Login
+					</button>
+				</div>
+			</div>
+		);
+	}
 
-                setStatus('Authentication successful');
-
-                setTimeout(() => {
-                    router.push('/test-connection/result?success=true');
-                }, 1500);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } catch (err: any) {
-                console.error(err.message || 'An unknown error occurred');
-                router.push('/test-connection/result?success=false&error=' + encodeURIComponent(err.message));
-            }
-        }
-        processCode();
-    }, [searchParams, router]);
-
-    return (
-        <div className="fle min-h-screen items-center justify-center">
-            <div className="text-center p-8 rounded-lg shadow-md bg-white">
-                <h1 className="text-2xl font-bold mb-4">OAuth Callback Processing</h1>
-                {error ? (
-                    <div className="text-red-600">
-                        <p>Error: {error}</p>
-                    </div>
-                ) : (
-                <div>
-                    <p>{status}</p>
-                    <div className="mt-4">
-                        <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent mx-auto"></div>
-                    </div>
-                </div>
-                )}
-            </div>
-        </div>
-    );
+	return (
+		<div className='flex min-h-screen items-center justify-center'>
+			<div className='text-center'>
+				<h1 className='text-xl font-semibold'>Completing Authentication...</h1>
+				<p className='mt-2 text-gray-600'>
+					Please wait while we set up your account.
+				</p>
+			</div>
+		</div>
+	);
 }

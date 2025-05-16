@@ -1,45 +1,33 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-"use client";
+import { redirect } from "next/navigation";
+import { isAuthenticated, getLocations } from "@/utils/api/authUtils.server";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import SideNav from "@/components/layout/SideNav"; // Import your new SideNav component
-// If you have a hook or utility for checking authentication:
-// import { useAuth } from '@/hooks/useAuth';
-
-export default function AuthenticatedLayout({
+export default async function AuthLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	const router = useRouter();
-	// Uncommment if you have authentication:
-	// const { isAuthenticated, loading } = useAuth();
-	const [isAuthenticated, setIsAuthenticated] = useState(true); // Replace with actual auth check
-	const [loading, setLoading] = useState(false); // Replace with actual loading state
+	// Check if user is authenticated with GHL
+	const authenticated = await isAuthenticated();
 
-	useEffect(() => {
-		// If not authenticated and not loading, redirect to sign-in
-		if (!isAuthenticated && !loading) {
-			router.push("/"); // or wherever your sign-in page is
-		}
-	}, [isAuthenticated, loading, router]);
-
-	// Show loading state while checking auth
-	if (loading) {
-		return <div>Loading...</div>;
+	if (!authenticated) {
+		// Redirect to login if not authenticated
+		redirect("/login");
 	}
 
-	// If authenticated, show the layout with SideNav
-	if (isAuthenticated) {
-		return (
-			<>
-				<SideNav />
-				<main className='p-4 sm:ml-64 pt-20'>{children}</main>
-			</>
-		);
+	// Check if we have locations (app is installed)
+	const locations = await getLocations();
+
+	if (!locations || locations.length === 0) {
+		// If authenticated but no locations, we need to fetch locations
+		// This is an edge case but could happen if cookies get out of sync
+		redirect("/api/ghl/refresh-locations");
 	}
 
-	// Fallback while redirecting
-	return null;
+	return (
+		<div className='min-h-screen bg-gray-50'>
+			<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
+				{children}
+			</div>
+		</div>
+	);
 }
