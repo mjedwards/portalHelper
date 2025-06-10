@@ -220,7 +220,7 @@ export default function OpportunitiesCard({
 											d='M15 19l-7-7 7-7'
 										/>
 									</svg>
-									Previou
+									Previous
 								</button>
 
 								<div className='flex items-center space-x-2'>
