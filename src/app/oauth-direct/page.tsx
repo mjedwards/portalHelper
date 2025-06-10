@@ -7,7 +7,7 @@ export default function OAuthDirect() {
 
 	useEffect(() => {
 		// Get the client ID from env vars
-		setClientId(process.env.NEXT_PUBLIC_GHL_CLIENT_ID_V2 || "");
+		setClientId(process.env.NEXT_PUBLIC_GHL_CLIENT_ID_V4 || "");
 	}, []);
 
 	// Function to directly redirect

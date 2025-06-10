@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// src/app/(auth)/dashboard/components/LocationSelector.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -38,7 +40,7 @@ export default function LocationSelector({
 			}
 		};
 
-		fetchLocations();
+		// fetchLocations();
 	}, []);
 
 	// Update selected location when prop changes
@@ -72,20 +74,24 @@ export default function LocationSelector({
 	};
 
 	if (isLoading)
-		return <div className='text-gray-500'>Loading locations...</div>;
+		return (
+			<div className='text-gray-500 dark:text-gray-400'>
+				Loading locations...
+			</div>
+		);
 
 	return (
 		<div className='flex items-center'>
 			<label
 				htmlFor='location'
-				className='mr-2 text-sm font-medium text-gray-700'>
+				className='mr-2 text-sm font-medium text-gray-700 dark:text-gray-300'>
 				Location:
 			</label>
 			<select
 				id='location'
 				value={selectedLocation}
 				onChange={handleLocationChange}
-				className='rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm'>
+				className='rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white'>
 				{locations.map((location) => (
 					<option
 						key={location.id || location.locationId || `loc-${location.name}`}

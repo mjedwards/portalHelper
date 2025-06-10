@@ -21,17 +21,20 @@ export async function POST(req: NextRequest) {
 		}
 
 		const tokenData = await exchangeCodeForTokens(code);
-
+		const { companyId, locationId, userId } = tokenData;
 		// Store tokens using our consolidated utility function
 		await setTokens(
 			tokenData.access_token,
 			tokenData.refresh_token,
-			tokenData.expires_in
+			tokenData.expires_in,
+			companyId,
+			locationId,
+			userId
 		);
 
 		// Fetch and store locations after successful authentication
 		try {
-			const locations = await fetchInstalledLocations(tokenData.access_token);
+			const locations = await fetchInstalledLocations(tokenData.access_token, companyId);
 			await storeInstalledLocations(locations);
 		} catch (locErr: any) {
 			console.error("Failed to fetch locations:", locErr);

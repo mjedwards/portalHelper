@@ -6,7 +6,7 @@ export default function OAuthTest() {
 	const [authUrl, setAuthUrl] = useState("");
 
 	const generateAuthUrl = () => {
-		const clientId = process.env.NEXT_PUBLIC_GHL_CLIENT_ID_V2;
+		const clientId = process.env.NEXT_PUBLIC_GHL_CLIENT_ID_V4;
 		const redirectUri = encodeURIComponent(
 			"http://localhost:3000/oauth/callback"
 		);

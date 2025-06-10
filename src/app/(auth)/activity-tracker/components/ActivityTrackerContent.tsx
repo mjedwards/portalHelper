@@ -22,7 +22,7 @@ const ActivityTrackerContent = () => {
 	return (
 		<div>
 			<div className='flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-4 mb-6'>
-				<h1 className='text-2xl font-bold'>Activity Tracker</h1>
+				<h1 className='text-2xl font-bold text-white'>Activity Tracker</h1>
 
 				<div className='flex flex-wrap gap-3'>
 					<TimeFrameSelector />
