@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// src/utils/api/authUtils.server.ts
 import { cookies } from "next/headers";
 import { refreshAccessToken } from "./authUtils.client";
 
@@ -37,6 +38,8 @@ export const clearAuthTokens = async () => {
 	cookieStore.delete("ghl_access_token");
 	cookieStore.delete("ghl_refresh_token");
 	cookieStore.delete("ghl_company_id");
+	cookieStore.delete("ghl_location_id");
+	cookieStore.delete("ghl_user_id");
 };
 
 /**
@@ -44,7 +47,7 @@ export const clearAuthTokens = async () => {
  */
 export const getDefaultLocation = async () => {
 	const cookieStore = await cookies();
-	return cookieStore.get("ghl_default_location")?.value;
+	return cookieStore.get("ghl_location_id")?.value;
 };
 
 /**
@@ -70,7 +73,10 @@ export const setTokens = async (
 	accessToken: string,
 	refreshToken: string,
 	expiresIn: number,
-	companyId?: string
+	companyId?: string,
+	locationId?: string,
+	userId?: string,
+	locationAccessToken?: string
 ) => {
 	const cookieStore = await cookies();
 
@@ -90,6 +96,33 @@ export const setTokens = async (
 
 	if (companyId) {
 		cookieStore.set("ghl_company_id", companyId, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			maxAge: 365 * 24 * 60 * 60, // 1 year
+			path: "/",
+		});
+	}
+
+	if (locationId) {
+		cookieStore.set("ghl_location_id", locationId, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			maxAge: 365 * 24 * 60 * 60, // 1 year
+			path: "/",
+		});
+	}
+
+	if (userId) {
+		cookieStore.set("ghl_user_id", userId, {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			maxAge: 365 * 24 * 60 * 60, // 1 year
+			path: "/",
+		});
+	}
+
+	if (locationAccessToken) {
+		cookieStore.set("ghl_LAT", locationAccessToken, {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === "production",
 			maxAge: 365 * 24 * 60 * 60, // 1 year

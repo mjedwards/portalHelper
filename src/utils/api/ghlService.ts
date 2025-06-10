@@ -1,74 +1,237 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// src/services/enhancedGhlService.ts
 import { callGhlApi } from "./ghlClient";
+import {
+	getEndpointConfig,
+	validateEndpointParams,
+} from "../ghlEndpointConfig";
 
-// Define type interfaces for API responses
+// Enhanced type interfaces with better specificity
 interface Location {
 	id: string;
 	name: string;
-	[key: string]: any;
+	address?: string;
+	city?: string;
+	state?: string;
+	country?: string;
+	postalCode?: string;
+	phone?: string;
+	email?: string;
+	website?: string;
+	timezone?: string;
+	logoUrl?: string;
+	settings?: Record<string, any>;
+}
+
+interface Company {
+	id: string;
+	name: string;
+	email?: string;
+	logoUrl?: string;
+	phone?: string;
+	website?: string;
+	domain?: string;
+	address?: string;
+	city?: string;
+	state?: string;
+	country?: string;
+	postalCode?: string;
+	timezone?: string;
+	plan?: number;
+	currency?: string;
+	customerType?: string;
+	billingInfo?: any;
 }
 
 interface Contact {
 	id: string;
-	[key: string]: any;
+	firstName?: string;
+	lastName?: string;
+	name?: string;
+	email?: string;
+	phone?: string;
+	address1?: string;
+	city?: string;
+	state?: string;
+	country?: string;
+	postalCode?: string;
+	website?: string;
+	timezone?: string;
+	dnd?: boolean;
+	tags?: string[];
+	customFields?: Array<{ id: string; value: any }>;
+	source?: string;
+	dateAdded?: string;
+	dateUpdated?: string;
+	locationId: string;
 }
 
 interface Calendar {
 	id: string;
 	name: string;
-	[key: string]: any;
+	description?: string;
+	isActive?: boolean;
+	locationId: string;
+	groupId?: string;
+	teamMembers?: Array<{
+		userId: string;
+		priority: number;
+		meetingLocations?: any[];
+	}>;
+	calendarType?: string;
+	eventType?: string;
+	appoinmentPerSlot?: number;
+	appoinmentPerDay?: number;
+	openHours?: Array<{
+		daysOfTheWeek: number[];
+		hours: Array<{
+			openHour: number;
+			openMinute: number;
+			closeHour: number;
+			closeMinute: number;
+		}>;
+	}>;
+	enableRecurring?: boolean;
+	recurring?: any;
+	formId?: string;
+	stickyContact?: boolean;
+	isLivePaymentMode?: boolean;
+	autoConfirm?: boolean;
 }
 
-interface Appointment {
+interface CalendarEvent {
 	id: string;
 	title: string;
-	startTime: string;
-	endTime: string;
-	[key: string]: any;
-}
-
-interface Task {
-	id: string;
-	title: string;
-	[key: string]: any;
+	startTime: string; // ISO date string
+	endTime: string; // ISO date string
+	calendarId: string;
+	locationId: string;
+	contactId?: string;
+	appointmentStatus?:
+		| "new"
+		| "confirmed"
+		| "cancelled"
+		| "showed"
+		| "noshow"
+		| "invalid";
+	assignedUserId?: string;
+	users?: string[];
+	notes?: string;
+	address?: string;
+	ignoreDateRange?: boolean;
+	toNotify?: boolean;
+	isRecurring?: boolean;
+	rrule?: string;
 }
 
 interface Opportunity {
 	id: string;
 	name: string;
-	[key: string]: any;
+	pipelineId: string;
+	stageId: string;
+	status: "open" | "won" | "lost" | "abandoned";
+	source?: string;
+	assignedTo?: string;
+	monetaryValue?: number;
+	contactId: string;
+	locationId: string;
+	customFields?: Array<{ id: string; value: any }>;
+	followers?: string[];
+	tags?: string[];
+	dateAdded: string;
+	dateUpdated: string;
+	lastStatusChangeDate?: string;
+	lastStageChangeDate?: string;
 }
 
-// Note: This service uses callGhlApi which depends on next/headers
-// It should only be used in server components
+interface Task {
+	id: string;
+	title: string;
+	body?: string;
+	type?: string;
+	status?: "incompleted" | "completed";
+	contactId: string;
+	assignedTo?: string;
+	dueDate?: string;
+	completed?: boolean;
+	dateAdded: string;
+	dateUpdated: string;
+}
+
+// Enhanced service with parameter validation and endpoint config integration
 export const GhlService = {
-	// Business endpoints
-	getBusinessDetails: async (locationId: string) => {
-		return callGhlApi<any>(`/businesses/${locationId}`);
-	},
+	// Helper method to validate parameters before making calls
+	validateAndCall: async <T>(
+		endpoint: string,
+		method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+		data?: any,
+		locationId?: string,
+		params?: Record<string, any>
+	): Promise<T> => {
+		const config = getEndpointConfig(endpoint);
+		const validation = validateEndpointParams(endpoint, params || {});
 
-	// Location endpoints
-	getLocations: async () => {
-		return callGhlApi<{ locations: Location[] }>("/locations/");
-	},
+		if (!validation.isValid) {
+			console.warn(
+				`Parameter validation warnings for ${endpoint}:`,
+				validation.errors
+			);
+			// Continue with call but log warnings
+		}
 
-	getLocation: async (locationId: string) => {
-		return callGhlApi<Location>(`/locations/${locationId}`);
-	},
-
-	// Contact endpoints
-	getContacts: async (locationId: string, params = {}) => {
-		return callGhlApi<{ contacts: Contact[] }>(
-			"/contacts/",
-			"GET",
-			undefined,
+		return callGhlApi<T>(
+			endpoint,
+			method,
+			data,
 			locationId,
-			params
+			validation.processedParams
 		);
 	},
 
-	getContact: async (locationId: string, contactId: string) => {
-		return callGhlApi<Contact>(
+	// COMPANY ENDPOINTS
+	getCompany: async (companyId: string): Promise<Company> => {
+		return GhlService.validateAndCall<Company>(
+			`/companies/${companyId}`,
+			"GET"
+		);
+	},
+
+	// LOCATION ENDPOINTS
+	getLocations: async (): Promise<{ locations: Location[] }> => {
+		return GhlService.validateAndCall<{ locations: Location[] }>("/locations/");
+	},
+
+	getLocation: async (locationId: string): Promise<Location> => {
+		return GhlService.validateAndCall<Location>(
+			`/locations/${locationId}`,
+			"GET",
+			undefined,
+			locationId
+		);
+	},
+
+	// CONTACT ENDPOINTS
+	getContacts: async (
+		locationId: string,
+		filters?: {
+			limit?: number;
+			startAfter?: string;
+			query?: string;
+			tags?: string[];
+		}
+	): Promise<{ contacts: Contact[]; meta?: any }> => {
+		return GhlService.validateAndCall<{
+			contacts: Contact[];
+			meta?: any;
+		}>("/contacts/", "GET", undefined, locationId, filters);
+	},
+
+	getContact: async (
+		locationId: string,
+		contactId: string
+	): Promise<Contact> => {
+		return GhlService.validateAndCall<Contact>(
 			`/contacts/${contactId}`,
 			"GET",
 			undefined,
@@ -76,16 +239,24 @@ export const GhlService = {
 		);
 	},
 
-	createContact: async (locationId: string, contactData: any) => {
-		return callGhlApi<Contact>("/contacts/", "POST", contactData, locationId);
+	createContact: async (
+		locationId: string,
+		contactData: Partial<Contact>
+	): Promise<Contact> => {
+		return GhlService.validateAndCall<Contact>(
+			"/contacts/",
+			"POST",
+			contactData,
+			locationId
+		);
 	},
 
 	updateContact: async (
 		locationId: string,
 		contactId: string,
-		contactData: any
-	) => {
-		return callGhlApi<Contact>(
+		contactData: Partial<Contact>
+	): Promise<Contact> => {
+		return GhlService.validateAndCall<Contact>(
 			`/contacts/${contactId}`,
 			"PUT",
 			contactData,
@@ -93,8 +264,11 @@ export const GhlService = {
 		);
 	},
 
-	deleteContact: async (locationId: string, contactId: string) => {
-		return callGhlApi<any>(
+	deleteContact: async (
+		locationId: string,
+		contactId: string
+	): Promise<{ success: boolean }> => {
+		return GhlService.validateAndCall<{ success: boolean }>(
 			`/contacts/${contactId}`,
 			"DELETE",
 			undefined,
@@ -102,18 +276,28 @@ export const GhlService = {
 		);
 	},
 
-	// Calendar endpoints
-	getCalendars: async (locationId: string) => {
-		return callGhlApi<{ calendars: Calendar[] }>(
+	// CALENDAR ENDPOINTS
+	getCalendars: async (
+		locationId: string,
+		filters?: {
+			limit?: number;
+			offset?: number;
+		}
+	): Promise<{ calendars: Calendar[] }> => {
+		return GhlService.validateAndCall<{ calendars: Calendar[] }>(
 			"/calendars/",
 			"GET",
 			undefined,
-			locationId
+			locationId,
+			filters
 		);
 	},
 
-	getCalendar: async (locationId: string, calendarId: string) => {
-		return callGhlApi<Calendar>(
+	getCalendar: async (
+		locationId: string,
+		calendarId: string
+	): Promise<Calendar> => {
+		return GhlService.validateAndCall<Calendar>(
 			`/calendars/${calendarId}`,
 			"GET",
 			undefined,
@@ -121,19 +305,28 @@ export const GhlService = {
 		);
 	},
 
-	// Appointment endpoints
-	getAppointments: async (locationId: string, params = {}) => {
-		return callGhlApi<{ appointments: Appointment[] }>(
-			"/calendars/events",
-			"GET",
-			undefined,
-			locationId,
-			params
-		);
+	// CALENDAR EVENTS ENDPOINTS
+	getCalendarEvents: async (
+		locationId: string,
+		filters?: {
+			calendarId?: string;
+			startDate?: string; // ISO date string
+			endDate?: string; // ISO date string
+			limit?: number;
+			offset?: number;
+		}
+	): Promise<{ events: CalendarEvent[]; total?: number }> => {
+		return GhlService.validateAndCall<{
+			events: CalendarEvent[];
+			total?: number;
+		}>("/calendars/events", "GET", undefined, locationId, filters);
 	},
 
-	getAppointment: async (locationId: string, appointmentId: string) => {
-		return callGhlApi<Appointment>(
+	getAppointment: async (
+		locationId: string,
+		appointmentId: string
+	): Promise<CalendarEvent> => {
+		return GhlService.validateAndCall<CalendarEvent>(
 			`/calendars/events/appointments/${appointmentId}`,
 			"GET",
 			undefined,
@@ -141,29 +334,36 @@ export const GhlService = {
 		);
 	},
 
-	// Task endpoints
-	getTasks: async (locationId: string, contactId: string) => {
-		return callGhlApi<{ tasks: Task[] }>(
-			`/contacts/${contactId}/tasks`,
-			"GET",
-			undefined,
-			locationId
-		);
+	// OPPORTUNITY ENDPOINTS (Fixed parameter name issue)
+	getOpportunities: async (
+		locationId: string,
+		filters?: {
+			limit?: number;
+			offset?: number;
+			pipelineId?: string;
+			stageId?: string;
+			status?: "open" | "won" | "lost" | "abandoned";
+			assignedTo?: string;
+			q?: string;
+		}
+	): Promise<{
+		opportunities: Opportunity[];
+		total?: number;
+		count?: number;
+	}> => {
+		// This will automatically use location_id parameter due to endpoint config
+		return GhlService.validateAndCall<{
+			opportunities: Opportunity[];
+			total?: number;
+			count?: number;
+		}>("/opportunities/search", "GET", undefined, locationId, filters);
 	},
 
-	// Opportunity endpoints
-	getOpportunities: async (locationId: string, params = {}) => {
-		return callGhlApi<{ opportunities: Opportunity[] }>(
-			"/opportunities/search",
-			"GET",
-			undefined,
-			locationId,
-			params
-		);
-	},
-
-	getOpportunity: async (locationId: string, opportunityId: string) => {
-		return callGhlApi<Opportunity>(
+	getOpportunity: async (
+		locationId: string,
+		opportunityId: string
+	): Promise<Opportunity> => {
+		return GhlService.validateAndCall<Opportunity>(
 			`/opportunities/${opportunityId}`,
 			"GET",
 			undefined,
@@ -171,7 +371,166 @@ export const GhlService = {
 		);
 	},
 
-	// Add more API methods here as needed
+	getOpportunityPipelines: async (
+		locationId: string
+	): Promise<{ pipelines: any[] }> => {
+		return GhlService.validateAndCall<{ pipelines: any[] }>(
+			"/opportunities/pipelines",
+			"GET",
+			undefined,
+			locationId
+		);
+	},
+
+	// TASK ENDPOINTS
+	getContactTasks: async (
+		locationId: string,
+		contactId: string
+	): Promise<{ tasks: Task[] }> => {
+		return GhlService.validateAndCall<{ tasks: Task[] }>(
+			`/contacts/${contactId}/tasks`,
+			"GET",
+			undefined,
+			locationId
+		);
+	},
+
+	getContactTask: async (
+		locationId: string,
+		contactId: string,
+		taskId: string
+	): Promise<Task> => {
+		return GhlService.validateAndCall<Task>(
+			`/contacts/${contactId}/tasks/${taskId}`,
+			"GET",
+			undefined,
+			locationId
+		);
+	},
+
+	createContactTask: async (
+		locationId: string,
+		contactId: string,
+		taskData: Partial<Task>
+	): Promise<Task> => {
+		return GhlService.validateAndCall<Task>(
+			`/contacts/${contactId}/tasks`,
+			"POST",
+			taskData,
+			locationId
+		);
+	},
+
+	// BUSINESS ENDPOINTS
+	getBusinesses: async (): Promise<any> => {
+		return GhlService.validateAndCall<any>(`/businesses`, "GET");
+	},
+
+	getBusinessDetails: async (businessId: string): Promise<any> => {
+		return GhlService.validateAndCall<any>(
+			`/businesses/${businessId}`,
+			"GET",
+			undefined,
+			businessId // Note: businesses might use businessId differently
+		);
+	},
+
+	// CONVENIENCE METHODS FOR COMMON TASKS
+
+	// Get all appointments for a location (combines calendar events)
+	getAllAppointments: async (
+		locationId: string,
+		dateRange?: { startDate: string; endDate: string }
+	): Promise<CalendarEvent[]> => {
+		try {
+			// First get all calendars
+			const calendarsResponse = await GhlService.getCalendars(locationId);
+			const calendars = calendarsResponse.calendars || [];
+
+			if (calendars.length === 0) {
+				console.warn(`No calendars found for location ${locationId}`);
+				return [];
+			}
+
+			// Get events for each calendar
+			const allEvents: CalendarEvent[] = [];
+
+			for (const calendar of calendars) {
+				try {
+					const eventsResponse = await GhlService.getCalendarEvents(
+						locationId,
+						{
+							calendarId: calendar.id,
+							...dateRange,
+							limit: 100,
+						}
+					);
+
+					if (eventsResponse.events) {
+						allEvents.push(...eventsResponse.events);
+					}
+				} catch (error) {
+					console.error(
+						`Failed to get events for calendar ${calendar.name}:`,
+						error
+					);
+				}
+			}
+
+			return allEvents;
+		} catch (error) {
+			console.error("Failed to get all appointments:", error);
+			throw error;
+		}
+	},
+
+	// Search across multiple data types
+	searchLocationData: async (
+		locationId: string,
+		searchTerm: string,
+		options?: {
+			includeContacts?: boolean;
+			includeOpportunities?: boolean;
+			limit?: number;
+		}
+	) => {
+		const results: {
+			contacts?: Contact[];
+			opportunities?: Opportunity[];
+		} = {};
+
+		const {
+			includeContacts = true,
+			includeOpportunities = true,
+			limit = 20,
+		} = options || {};
+
+		try {
+			if (includeContacts) {
+				const contactsResponse = await GhlService.getContacts(locationId, {
+					query: searchTerm,
+					limit,
+				});
+				results.contacts = contactsResponse.contacts;
+			}
+
+			if (includeOpportunities) {
+				const opportunitiesResponse = await GhlService.getOpportunities(
+					locationId,
+					{
+						q: searchTerm,
+						limit,
+					}
+				);
+				results.opportunities = opportunitiesResponse.opportunities;
+			}
+
+			return results;
+		} catch (error) {
+			console.error("Search failed:", error);
+			throw error;
+		}
+	},
 };
 
 export default GhlService;
