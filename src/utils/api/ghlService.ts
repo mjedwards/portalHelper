@@ -6,6 +6,10 @@ import {
 	getEndpointConfig,
 	validateEndpointParams,
 } from "../ghlEndpointConfig";
+import {
+	ContactDetailsResponse,
+	ContactDetailType,
+} from "@/app/types/contact-details";
 
 // Enhanced type interfaces with better specificity
 interface Location {
@@ -177,7 +181,6 @@ export const GhlService = {
 				`Parameter validation warnings for ${endpoint}:`,
 				validation.errors
 			);
-			// Continue with call but log warnings
 		}
 
 		return callGhlApi<T>(
@@ -236,6 +239,18 @@ export const GhlService = {
 			"GET",
 			undefined,
 			locationId
+		);
+	},
+
+	getContactDetails: async (
+		contactId: string,
+		detailType: ContactDetailType
+	): Promise<ContactDetailsResponse> => {
+		return GhlService.validateAndCall<ContactDetailsResponse>(
+			`/contacts/${contactId}/${detailType}`,
+			"GET",
+			undefined,
+			undefined
 		);
 	},
 
@@ -334,14 +349,14 @@ export const GhlService = {
 		);
 	},
 
-	// OPPORTUNITY ENDPOINTS (Fixed parameter name issue)
+	// OPPORTUNITY ENDPOINTS
 	getOpportunities: async (
 		locationId: string,
 		filters?: {
 			limit?: number;
 			offset?: number;
-			pipelineId?: string;
-			stageId?: string;
+			pipeline_id?: string;
+			pipeline_stage_id?: string;
 			status?: "open" | "won" | "lost" | "abandoned";
 			assignedTo?: string;
 			q?: string;
@@ -378,7 +393,8 @@ export const GhlService = {
 			"/opportunities/pipelines",
 			"GET",
 			undefined,
-			locationId
+			locationId,
+			{ locationId }
 		);
 	},
 

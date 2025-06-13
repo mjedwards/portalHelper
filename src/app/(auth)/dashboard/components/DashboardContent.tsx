@@ -5,16 +5,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import GhlService from "@/utils/api/ghlService";
-import OpportunitiesCard from "./dashboard/OpportunitiesCard";
+import OpportunitiesCard from "./dashboard/Opportunities/OpportunitiesCard";
 import {
 	DashboardContentProps,
 	PaginationParams,
 } from "../components/dashboard/types/dashboard";
 import { GhlClientService } from "@/utils/api/ghl.client.service";
+import PipelineStageCards from "./dashboard/PipelineStages/PipelineStageCards";
 
 export default function DashboardContent({
-	companyData,
 	opportunitiesData: initialOpportunitiesData,
 	calendarsData,
 	locationId,
@@ -59,7 +58,6 @@ export default function DashboardContent({
 
 			console.log(`🔄 Dashboard - Fetching with filters:`, filters);
 
-			// 👈 Use the client service instead
 			const response = await GhlClientService.getOpportunities(
 				locationId,
 				filters
@@ -88,107 +86,11 @@ export default function DashboardContent({
 				hasError={hasLocationError}
 			/>
 
-			{/* Company/Carrier Info Card */}
-			<div className='bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-100 dark:border-gray-700'>
-				<div className='flex items-center justify-between mb-4'>
-					<h2 className='text-xl font-semibold dark:text-white'>
-						Company Information
-					</h2>
-					{companyData?.logoUrl && (
-						<div className='h-12 w-12 overflow-hidden rounded'>
-							<img
-								src={companyData.logoUrl}
-								alt={`${companyData.name} logo`}
-								className='h-full w-full object-contain bg-white p-1 dark:bg-gray-700'
-							/>
-						</div>
-					)}
-				</div>
-				<div className='border-t border-gray-200 dark:border-gray-700 pt-4'>
-					{companyData?.name ? (
-						<>
-							<p className='text-gray-700 dark:text-gray-300 mb-2'>
-								<span className='font-medium'>Name:</span> {companyData.name}
-							</p>
-							{companyData?.email && (
-								<p className='text-gray-700 dark:text-gray-300 mb-2'>
-									<span className='font-medium'>Email:</span>{" "}
-									<a
-										href={`mailto:${companyData.email}`}
-										className='text-blue-600 dark:text-blue-400 hover:underline'>
-										{companyData.email}
-									</a>
-								</p>
-							)}
-							{companyData?.phone && (
-								<p className='text-gray-700 dark:text-gray-300 mb-2'>
-									<span className='font-medium'>Phone:</span>{" "}
-									<a
-										href={`tel:${companyData.phone}`}
-										className='text-blue-600 dark:text-blue-400 hover:underline'>
-										{companyData.phone}
-									</a>
-								</p>
-							)}
-							{companyData?.website && (
-								<p className='text-gray-700 dark:text-gray-300 mb-2'>
-									<span className='font-medium'>Website:</span>{" "}
-									<a
-										href={companyData.website}
-										target='_blank'
-										rel='noopener noreferrer'
-										className='text-blue-600 dark:text-blue-400 hover:underline'>
-										{companyData.website}
-									</a>
-								</p>
-							)}
-						</>
-					) : (
-						<div className='text-center py-4'>
-							<svg
-								className='w-8 h-8 mx-auto text-gray-400 dark:text-gray-600 mb-2'
-								fill='none'
-								stroke='currentColor'
-								viewBox='0 0 24 24'>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									strokeWidth={2}
-									d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
-								/>
-							</svg>
-							<p className='text-gray-500 dark:text-gray-400 text-sm'>
-								Company information not available
-							</p>
-						</div>
-					)}
-					<div className='mt-4 pt-4 border-t border-gray-200 dark:border-gray-700'>
-						<Link
-							href='/carriers'
-							className='inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline'>
-							<svg
-								className='w-4 h-4 mr-1'
-								fill='none'
-								stroke='currentColor'
-								viewBox='0 0 24 24'>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									strokeWidth={2}
-									d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
-								/>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									strokeWidth={2}
-									d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'
-								/>
-							</svg>
-							Manage Carriers
-						</Link>
-					</div>
-				</div>
-			</div>
+			{/* Pipeline Stages Info Card */}
+			<PipelineStageCards
+				locationId={locationId}
+				hasLocationError={hasLocationError}
+			/>
 
 			{/* Calendar Info Card */}
 			<div className='bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-100 dark:border-gray-700'>
