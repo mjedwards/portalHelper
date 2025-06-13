@@ -86,7 +86,7 @@ export const ENDPOINT_CONFIG: Record<string, EndpointConfig> = {
 
 	// OPPORTUNITIES ENDPOINTS
 	"/opportunities/search": {
-		locationParam: "location_id", // Note: underscore format
+		locationParam: "location_id",
 		requiresLocation: true,
 		requiredParams: [],
 		optionalParams: [
@@ -104,13 +104,13 @@ export const ENDPOINT_CONFIG: Record<string, EndpointConfig> = {
 				description: "ID cursor for pagination (from meta.startAfterId)",
 			},
 			{
-				name: "pipelineId",
+				name: "pipeline_id",
 				type: "string",
 				required: false,
 				description: "Filter by pipeline",
 			},
 			{
-				name: "stageId",
+				name: "pipeline_stage_id",
 				type: "string",
 				required: false,
 				description: "Filter by stage",
@@ -141,7 +141,7 @@ export const ENDPOINT_CONFIG: Record<string, EndpointConfig> = {
 	},
 
 	"/opportunities/pipelines": {
-		locationParam: "location_id",
+		locationParam: "locationId",
 		requiresLocation: true,
 		requiredParams: [],
 		optionalParams: [],

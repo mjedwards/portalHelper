@@ -193,7 +193,7 @@ export async function callGhlApi<T>(
 		const client = await createAuthClient();
 		const config =
 			Object.keys(finalParams).length > 0 ? { params: finalParams } : undefined;
-		console.log("config", config);
+
 		let response;
 		switch (method) {
 			case "GET":

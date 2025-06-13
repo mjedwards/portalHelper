@@ -124,7 +124,7 @@ export interface DashboardContentProps {
 }
 
 export interface OpportunitiesCardProps {
-	opportunitiesData?: OpportunitiesData;
+	opportunitiesData?: OpportunitiesData | undefined;
 	onPageChange?: (
 		page: number,
 		direction: "next" | "prev",

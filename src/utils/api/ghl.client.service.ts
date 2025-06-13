@@ -1,47 +1,23 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-interface Contact {
-	id: string;
-	firstName?: string;
-	lastName?: string;
-	name?: string;
-	email?: string;
-	phone?: string;
-	address1?: string;
-	city?: string;
-	state?: string;
-	country?: string;
-	postalCode?: string;
-	website?: string;
-	timezone?: string;
-	dnd?: boolean;
-	tags?: string[];
-	customFields?: Array<{ id: string; value: any }>;
-	source?: string;
-	dateAdded?: string;
-	dateUpdated?: string;
-	locationId: string;
-}
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
-interface Opportunity {
-	id: string;
-	name: string;
-	pipelineId: string;
-	stageId: string;
-	status: "open" | "won" | "lost" | "abandoned";
-	source?: string;
-	assignedTo?: string;
-	monetaryValue?: number;
-	contactId: string;
-	locationId: string;
-	customFields?: Array<{ id: string; value: any }>;
-	followers?: string[];
-	tags?: string[];
-	dateAdded: string;
-	dateUpdated: string;
-	lastStatusChangeDate?: string;
-	lastStageChangeDate?: string;
-}
+import { PipelineStatsResponse } from "@/app/(auth)/dashboard/components/dashboard/types/pipeline-stats";
+import {
+	ContactDetailsResponse,
+	ContactDetailType,
+	ContactEvent,
+	ContactNote,
+	ContactTask,
+	isEventsResponse,
+	isNotesResponse,
+	isTasksResponse,
+} from "@/app/types/contact-details";
+import { Contact, Opportunity } from "@/app/types/ghl";
+import {
+	PipelineOption,
+	PipelinesResponse,
+	StageOption,
+} from "@/app/types/pipeline";
 
 export class GhlClientService {
 	private static async makeRequest<T>(
@@ -88,7 +64,7 @@ export class GhlClientService {
 		opportunities: Opportunity[];
 		total?: number;
 		count?: number;
-		meta?: any; // Include meta for pagination info
+		meta?: any;
 	}> {
 		const searchParams = new URLSearchParams({ locationId });
 
@@ -106,6 +82,66 @@ export class GhlClientService {
 			count?: number;
 			meta?: any;
 		}>(`/api/ghl/opportunities?${searchParams.toString()}`);
+	}
+
+	static async getPipelineStages(
+		locationId: string
+	): Promise<PipelinesResponse> {
+		const searchParams = new URLSearchParams({ locationId });
+
+		return this.makeRequest<PipelinesResponse>(
+			`/api/ghl/opportunities/getPipelines?${searchParams.toString()}`
+		);
+	}
+
+	static async getPipelineStatistics(
+		locationId: string
+	): Promise<PipelineStatsResponse> {
+		const searchParams = new URLSearchParams({ locationId });
+
+		return this.makeRequest<PipelineStatsResponse>(
+			`/api/ghl/opportunities/getPipelineStats?${searchParams.toString()}`
+		);
+	}
+	
+	// Convenience method to get all stages flattened
+	static async getAllStages(locationId: string): Promise<StageOption[]> {
+		const response = await this.getPipelineStages(locationId);
+
+		const stages: StageOption[] = [];
+
+		response.pipelines.forEach((pipeline) => {
+			pipeline.stages.forEach((stage) => {
+				stages.push({
+					value: stage.id,
+					label: stage.name,
+					pipelineId: pipeline.id,
+					pipelineName: pipeline.name,
+					position: stage.position,
+				});
+			});
+		});
+
+		// Sort by pipeline name, then by stage position
+		return stages.sort((a, b) => {
+			if (a.pipelineName !== b.pipelineName) {
+				return a.pipelineName.localeCompare(b.pipelineName);
+			}
+			return a.position - b.position;
+		});
+	}
+
+	// Convenience method to get pipeline options for dropdowns
+	static async getPipelineOptions(
+		locationId: string
+	): Promise<PipelineOption[]> {
+		const response = await this.getPipelineStages(locationId);
+
+		return response.pipelines.map((pipeline: any) => ({
+			value: pipeline.id,
+			label: pipeline.name,
+			stageCount: pipeline.stages.length,
+		}));
 	}
 
 	// CONTACT METHODS
@@ -148,6 +184,38 @@ export class GhlClientService {
 				body: JSON.stringify(contactData),
 			}
 		);
+	}
+
+	static async getContactDetails<T extends ContactDetailType>(
+		contactId: string,
+		detailType: T
+	): Promise<ContactDetailsResponse> {
+		const searchParams = new URLSearchParams({
+			contactId,
+			detailType,
+		});
+
+		return this.makeRequest<ContactDetailsResponse>(
+			`/api/ghl/getContactDetails?${searchParams.toString()}`
+		);
+	}
+
+	// Convenience methods with specific return types
+	static async getContactTasks(contactId: string): Promise<ContactTask[]> {
+		const response = await this.getContactDetails(contactId, "tasks");
+		return isTasksResponse(response) ? response.tasks : [];
+	}
+
+	static async getContactAppointments(
+		contactId: string
+	): Promise<ContactEvent[]> {
+		const response = await this.getContactDetails(contactId, "appointments");
+		return isEventsResponse(response) ? response.events : [];
+	}
+
+	static async getContactNotes(contactId: string): Promise<ContactNote[]> {
+		const response = await this.getContactDetails(contactId, "notes");
+		return isNotesResponse(response) ? response.notes : [];
 	}
 
 	// Add other methods following the same pattern...
