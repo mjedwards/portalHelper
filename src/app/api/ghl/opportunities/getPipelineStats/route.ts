@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 			GhlService.getOpportunities(locationId, { limit: 100 }),
 		]);
 
-		// Process the data to create statistics
+		// Process the data to create statistic s
 		const pipelineStats = pipelinesResponse.pipelines.map((pipeline) => {
 			const pipelineOpportunities = opportunitiesResponse.opportunities.filter(
 				(opp) => opp.pipelineId === pipeline.id
