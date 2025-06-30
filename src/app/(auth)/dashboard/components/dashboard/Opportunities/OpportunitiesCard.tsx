@@ -64,7 +64,7 @@ export default function OpportunitiesCard({
 		}
 		return phone;
 	};
-
+	console.log(opportunitiesData);
 	const totalPages = opportunitiesData?.meta?.total
 		? Math.ceil(opportunitiesData.meta.total / 20)
 		: 0;
