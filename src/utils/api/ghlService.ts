@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/services/enhancedGhlService.ts
@@ -130,6 +131,8 @@ interface CalendarEvent {
 }
 
 interface Opportunity {
+	pipelineStageId: any;
+	createdAt: string;
 	id: string;
 	name: string;
 	pipelineId: string;
@@ -161,6 +164,37 @@ interface Task {
 	completed?: boolean;
 	dateAdded: string;
 	dateUpdated: string;
+}
+
+interface PaginationMeta {
+	startAfterId?: string;
+	startAfter?: string;
+	total?: number;
+	count?: number;
+	hasMore?: boolean;
+}
+
+interface GetAllOpportunitiesOptions {
+	onProgress?: (current: number, total: number, pageCount: number) => void;
+	onError?: (error: Error, pageCount: number) => void;
+	maxRetries?: number;
+	delayBetweenRequests?: number;
+	filters?: {
+		pipeline_id?: string;
+		pipeline_stage_id?: string;
+		status?: "open" | "won" | "lost" | "abandoned";
+		assignedTo?: string;
+		q?: string;
+	};
+}
+
+interface BulkOpportunityResponse {
+	opportunities: Opportunity[];
+	totalFetched: number;
+	totalEstimated: number;
+	pageCount: number;
+	duration: number;
+	fromCache?: boolean;
 }
 
 // Enhanced service with parameter validation and endpoint config integration
@@ -355,6 +389,8 @@ export const GhlService = {
 		filters?: {
 			limit?: number;
 			offset?: number;
+			startAfterId?: string;
+			startAfter?: string;
 			pipeline_id?: string;
 			pipeline_stage_id?: string;
 			status?: "open" | "won" | "lost" | "abandoned";
@@ -365,6 +401,7 @@ export const GhlService = {
 		opportunities: Opportunity[];
 		total?: number;
 		count?: number;
+		meta?: PaginationMeta;
 	}> => {
 		// This will automatically use location_id parameter due to endpoint config
 		return GhlService.validateAndCall<{
@@ -373,6 +410,468 @@ export const GhlService = {
 			count?: number;
 		}>("/opportunities/search", "GET", undefined, locationId, filters);
 	},
+	getAllOpportunities: async (
+		locationId: string,
+		options: GetAllOpportunitiesOptions = {}
+	): Promise<BulkOpportunityResponse> => {
+		const {
+			onProgress,
+			onError,
+			maxRetries = 3,
+			delayBetweenRequests = 150, // ms between requests for rate limiting
+			filters = {},
+		} = options;
+
+		const startTime = Date.now();
+		let allOpportunities: Opportunity[] = [];
+		let hasMore = true;
+		let startAfterId: string | undefined;
+		let startAfter: string | undefined;
+		let pageCount = 0;
+		let totalEstimated = 0;
+
+		console.log(
+			`🔄 Starting bulk opportunity fetch for location: ${locationId}`
+		);
+
+		try {
+			while (hasMore) {
+				let retryCount = 0;
+				let success = false;
+				let lastError: Error | null = null;
+
+				while (retryCount <= maxRetries && !success) {
+					try {
+						// Prepare pagination parameters
+						const paginationParams = {
+							limit: 100, // Maximum allowed by GoHighLevel
+							...filters,
+							...(startAfterId && { startAfterId }),
+							...(startAfter && { startAfter }),
+						};
+
+						console.log(
+							`📄 Fetching page ${pageCount + 1}${
+								startAfterId
+									? ` (cursor: ${startAfterId.substring(0, 8)}...)`
+									: ""
+							}`
+						);
+
+						// Use your existing method
+						const response = await GhlService.getOpportunities(
+							locationId,
+							paginationParams
+						);
+
+						if (response.opportunities && response.opportunities.length > 0) {
+							allOpportunities.push(...response.opportunities);
+							pageCount++;
+
+							// Update estimated total
+							if (response.total && response.total > totalEstimated) {
+								totalEstimated = response.total;
+							} else if (!totalEstimated && response.count) {
+								totalEstimated = response.count;
+							}
+
+							// Progress callback
+							if (onProgress) {
+								onProgress(
+									allOpportunities.length,
+									totalEstimated || allOpportunities.length,
+									pageCount
+								);
+							}
+
+							console.log(
+								`✅ Page ${pageCount} fetched: ${response.opportunities.length} opportunities (Total: ${allOpportunities.length})`
+							);
+						}
+
+						// Update pagination cursors
+						startAfterId = response.meta?.startAfterId;
+						startAfter = response.meta?.startAfter;
+
+						// Determine if there are more pages
+						// GoHighLevel uses cursor-based pagination
+						hasMore = !!(startAfterId || startAfter);
+
+						// If no pagination cursors but we got a full page, try offset-based
+						if (!hasMore && response.opportunities.length === 100) {
+							// Fallback to offset-based pagination
+							const nextResponse = await GhlService.getOpportunities(
+								locationId,
+								{
+									...filters,
+									limit: 100,
+									offset: allOpportunities.length,
+								}
+							);
+
+							if (
+								nextResponse.opportunities &&
+								nextResponse.opportunities.length > 0
+							) {
+								allOpportunities.push(...nextResponse.opportunities);
+								pageCount++;
+
+								if (onProgress) {
+									onProgress(
+										allOpportunities.length,
+										totalEstimated || allOpportunities.length,
+										pageCount
+									);
+								}
+
+								// Continue if we got a full page
+								hasMore = nextResponse.opportunities.length === 100;
+							} else {
+								hasMore = false;
+							}
+						}
+
+						success = true;
+
+						// Rate limiting: Wait between requests
+						if (hasMore && delayBetweenRequests > 0) {
+							await new Promise((resolve) =>
+								setTimeout(resolve, delayBetweenRequests)
+							);
+						}
+					} catch (error) {
+						lastError = error as Error;
+						retryCount++;
+
+						console.warn(
+							`⚠️ Page ${pageCount + 1} attempt ${retryCount} failed:`,
+							error
+						);
+
+						// Handle rate limiting (429 errors)
+						if (
+							error &&
+							typeof error === "object" &&
+							"status" in error &&
+							error.status === 429
+						) {
+							// Fix: error.headers may not exist on type, so use type assertion and optional chaining safely
+							const retryAfter =
+								typeof (error as any)?.headers?.["retry-after"] !== "undefined"
+									? (error as any).headers["retry-after"]
+									: 5;
+							const waitTime = parseInt(retryAfter as string, 10) * 1000;
+
+							console.log(
+								`⏳ Rate limited. Waiting ${waitTime}ms before retry...`
+							);
+							await new Promise((resolve) => setTimeout(resolve, waitTime));
+							continue;
+						}
+
+						// Exponential backoff for other errors
+						if (retryCount <= maxRetries) {
+							const backoffDelay = Math.min(
+								1000 * Math.pow(2, retryCount - 1),
+								30000
+							);
+							console.log(
+								`⏳ Retrying in ${backoffDelay}ms... (attempt ${retryCount}/${maxRetries})`
+							);
+							await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+						}
+
+						// Call error callback
+						if (onError) {
+							onError(lastError, pageCount);
+						}
+					}
+				}
+
+				// If we exhausted retries, break the loop
+				if (!success) {
+					console.error(
+						`❌ Failed to fetch page ${
+							pageCount + 1
+						} after ${maxRetries} retries`
+					);
+					if (lastError) {
+						throw lastError;
+					}
+					break;
+				}
+
+				// Progress logging every 10 pages
+				if (pageCount % 10 === 0 && pageCount > 0) {
+					console.log(
+						`📊 Progress update: ${allOpportunities.length} opportunities fetched in ${pageCount} pages`
+					);
+				}
+			}
+
+			const duration = Date.now() - startTime;
+			const finalTotal = totalEstimated || allOpportunities.length;
+
+			console.log(
+				`✅ Bulk fetch complete: ${allOpportunities.length} opportunities in ${pageCount} pages (${duration}ms)`
+			);
+
+			return {
+				opportunities: allOpportunities,
+				totalFetched: allOpportunities.length,
+				totalEstimated: finalTotal,
+				pageCount,
+				duration,
+			};
+		} catch (error) {
+			const duration = Date.now() - startTime;
+			console.error(
+				`❌ Bulk fetch failed after ${pageCount} pages (${duration}ms):`,
+				error
+			);
+
+			// Return partial results if we got some data
+			if (allOpportunities.length > 0) {
+				console.log(
+					`📊 Returning partial results: ${allOpportunities.length} opportunities`
+				);
+				return {
+					opportunities: allOpportunities,
+					totalFetched: allOpportunities.length,
+					totalEstimated: totalEstimated || allOpportunities.length,
+					pageCount,
+					duration,
+				};
+			}
+
+			throw error;
+		}
+	},
+
+	getPipelineStatisticsComplete: async (
+		locationId: string,
+		options?: {
+			onProgress?: (current: number, total: number) => void;
+			useCache?: boolean;
+			cacheMaxAge?: number; // milliseconds
+		}
+	) => {
+		const {
+			onProgress,
+			useCache = true,
+			cacheMaxAge = 5 * 60 * 1000,
+		} = options || {};
+
+		try {
+			// Get pipelines first (lightweight call)
+			const pipelinesResponse = await GhlService.getOpportunityPipelines(
+				locationId
+			);
+
+			// Get all opportunities with progress tracking
+			const { opportunities, totalFetched, pageCount, duration } =
+				await GhlService.getAllOpportunities(locationId, {
+					onProgress: onProgress
+						? (current, total, pages) => {
+								onProgress(current, total);
+						  }
+						: undefined,
+				});
+
+			console.log(
+				`🔍 Found ${opportunities.length} opportunities for processing`
+			);
+			console.log(`🔍 Found ${pipelinesResponse.pipelines.length} pipelines`);
+
+			// FIXED: Calculate pipeline statistics using the correct field names
+			const pipelineStats = pipelinesResponse.pipelines.map((pipeline) => {
+				const pipelineOpportunities = opportunities.filter(
+					(opp) => opp.pipelineId === pipeline.id
+				);
+
+				console.log(
+					`📊 Pipeline "${pipeline.name}": ${pipelineOpportunities.length} opportunities`
+				);
+
+				const stages = pipeline.stages.map((stage: any) => {
+					// FIXED: Use pipelineStageId instead of stageId
+					const stageOpportunities = pipelineOpportunities.filter(
+						(opp) => opp.pipelineStageId === stage.id // <-- FIXED: was opp.stageId
+					);
+
+					console.log(
+						`   Stage "${stage.name}": ${stageOpportunities.length} opportunities`
+					);
+
+					const totalValue = stageOpportunities.reduce(
+						(sum, opp) => sum + (opp.monetaryValue || 0),
+						0
+					);
+
+					return {
+						stageId: stage.id,
+						stageName: stage.name,
+						position: stage.position,
+						opportunityCount: stageOpportunities.length,
+						totalValue,
+						averageValue:
+							stageOpportunities.length > 0
+								? totalValue / stageOpportunities.length
+								: 0,
+						opportunities: stageOpportunities.map((opp) => ({
+							id: opp.id,
+							name: opp.name,
+							monetaryValue: opp.monetaryValue || 0,
+							status: opp.status,
+							dateAdded: opp.createdAt || opp.dateAdded, // FIXED: Use createdAt if available
+						})),
+					};
+				});
+
+				const totalOpportunities = pipelineOpportunities.length;
+				const totalValue = pipelineOpportunities.reduce(
+					(sum, opp) => sum + (opp.monetaryValue || 0),
+					0
+				);
+
+				return {
+					id: pipeline.id,
+					name: pipeline.name,
+					totalOpportunities,
+					totalValue,
+					stages: stages.sort((a: any, b: any) => a.position - b.position), // Ensure proper ordering
+				};
+			});
+
+			const result = {
+				pipelines: pipelineStats,
+				totalOpportunities: opportunities.length,
+				totalValue: opportunities.reduce(
+					(sum, opp) => sum + (opp.monetaryValue || 0),
+					0
+				),
+				meta: {
+					totalFetched,
+					pageCount,
+					duration,
+					complete: true,
+					lastUpdated: new Date().toISOString(),
+				},
+			};
+
+			console.log("✅ Pipeline statistics calculation complete:", {
+				totalOpportunities: result.totalOpportunities,
+				totalValue: result.totalValue,
+				pipelinesProcessed: result.pipelines.length,
+			});
+
+			return result;
+		} catch (error) {
+			console.error("Failed to get complete pipeline statistics:", error);
+			throw error;
+		}
+	},
+	// getPipelineStatisticsComplete: async (
+	// 	locationId: string,
+	// 	options?: {
+	// 		onProgress?: (current: number, total: number) => void;
+	// 		useCache?: boolean;
+	// 		cacheMaxAge?: number; // milliseconds
+	// 	}
+	// ) => {
+	// 	const {
+	// 		onProgress,
+	// 		useCache = true,
+	// 		cacheMaxAge = 5 * 60 * 1000,
+	// 	} = options || {};
+
+	// 	try {
+	// 		// Get pipelines first (lightweight call)
+	// 		const pipelinesResponse = await GhlService.getOpportunityPipelines(
+	// 			locationId
+	// 		);
+
+	// 		// Get all opportunities with progress tracking
+	// 		const { opportunities, totalFetched, pageCount, duration } =
+	// 			await GhlService.getAllOpportunities(locationId, {
+	// 				onProgress: onProgress
+	// 					? (current, total, pages) => {
+	// 							onProgress(current, total);
+	// 					  }
+	// 					: undefined,
+	// 			});
+
+	// 		// Calculate pipeline statistics using the complete dataset
+	// 		const pipelineStats = pipelinesResponse.pipelines.map((pipeline) => {
+	// 			const pipelineOpportunities = opportunities.filter(
+	// 				(opp) => opp.pipelineId === pipeline.id
+	// 			);
+
+	// 			const stages = pipeline.stages.map((stage: any) => {
+	// 				const stageOpportunities = pipelineOpportunities.filter(
+	// 					(opp) => opp.stageId === stage.id
+	// 				);
+
+	// 				const totalValue = stageOpportunities.reduce(
+	// 					(sum, opp) => sum + (opp.monetaryValue || 0),
+	// 					0
+	// 				);
+
+	// 				return {
+	// 					stageId: stage.id,
+	// 					stageName: stage.name,
+	// 					position: stage.position,
+	// 					opportunityCount: stageOpportunities.length,
+	// 					totalValue,
+	// 					averageValue:
+	// 						stageOpportunities.length > 0
+	// 							? totalValue / stageOpportunities.length
+	// 							: 0,
+	// 					opportunities: stageOpportunities.map((opp) => ({
+	// 						id: opp.id,
+	// 						name: opp.name,
+	// 						monetaryValue: opp.monetaryValue || 0,
+	// 						status: opp.status,
+	// 						dateAdded: opp.dateAdded,
+	// 					})),
+	// 				};
+	// 			});
+
+	// 			const totalOpportunities = pipelineOpportunities.length;
+	// 			const totalValue = pipelineOpportunities.reduce(
+	// 				(sum, opp) => sum + (opp.monetaryValue || 0),
+	// 				0
+	// 			);
+
+	// 			return {
+	// 				id: pipeline.id,
+	// 				name: pipeline.name,
+	// 				totalOpportunities,
+	// 				totalValue,
+	// 				stages,
+	// 			};
+	// 		});
+
+	// 		return {
+	// 			pipelines: pipelineStats,
+	// 			totalOpportunities: opportunities.length,
+	// 			totalValue: opportunities.reduce(
+	// 				(sum, opp) => sum + (opp.monetaryValue || 0),
+	// 				0
+	// 			),
+	// 			meta: {
+	// 				totalFetched,
+	// 				pageCount,
+	// 				duration,
+	// 				complete: true,
+	// 				lastUpdated: new Date().toISOString(),
+	// 			},
+	// 		};
+	// 	} catch (error) {
+	// 		console.error("Failed to get complete pipeline statistics:", error);
+	// 		throw error;
+	// 	}
+	// },
 
 	getOpportunity: async (
 		locationId: string,

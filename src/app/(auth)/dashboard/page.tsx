@@ -125,7 +125,7 @@ export default async function DashboardPage() {
 						companyData={dashboardData.company}
 						opportunitiesData={dashboardData.opportunities}
 						calendarsData={dashboardData.calendars}
-						locationId={dashboardData.locationId}
+						locationId={dashboardData.locationId ?? ""}
 						hasLocationError={true}
 					/>
 				</div>
@@ -222,7 +222,7 @@ export default async function DashboardPage() {
 					companyData={dashboardData.company}
 					opportunitiesData={dashboardData.opportunities}
 					calendarsData={dashboardData.calendars}
-					locationId={dashboardData.locationId}
+					locationId={dashboardData.locationId as string}
 					hasLocationError={false}
 				/>
 			</div>
