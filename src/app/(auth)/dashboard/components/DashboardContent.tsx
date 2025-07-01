@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @next/next/no-img-element */
 // src/app/(auth)/dashboard/components/DashboardContent.tsx
 "use client";
 
@@ -64,7 +63,7 @@ export default function DashboardContent({
 			);
 
 			console.log(`✅ Dashboard - Successfully updated opportunities data`);
-			setOpportunitiesData(response);
+			setOpportunitiesData(response as any);
 		} catch (error) {
 			console.error(
 				"❌ Dashboard - Failed to fetch opportunities page:",
@@ -112,50 +111,7 @@ export default function DashboardContent({
 					</svg>
 				</div>
 				<div className='border-t border-gray-200 dark:border-gray-700 pt-4'>
-					{calendarsData?.calendars?.length > 0 ? (
-						<>
-							<p className='text-gray-700 dark:text-gray-300 mb-4'>
-								<span className='font-medium'>Total Calendars:</span>{" "}
-								{calendarsData.calendars.length}
-							</p>
-							<div className='space-y-3 max-h-60 overflow-y-auto'>
-								{calendarsData.calendars.slice(0, 5).map((calendar: any) => (
-									<div
-										key={calendar.id}
-										className='border-l-4 border-blue-500 pl-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-r'>
-										<h3 className='font-medium text-gray-900 dark:text-white'>
-											{calendar.name}
-										</h3>
-										{calendar.description && (
-											<p className='text-sm text-gray-600 dark:text-gray-400 mt-1'>
-												{calendar.description}
-											</p>
-										)}
-										<div className='flex items-center justify-between mt-2'>
-											<span
-												className={`inline-block px-2 py-1 text-xs rounded-full ${
-													calendar.isActive
-														? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-														: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-												}`}>
-												{calendar.isActive ? "Active" : "Inactive"}
-											</span>
-											{calendar.calendarType && (
-												<span className='text-xs text-gray-500 dark:text-gray-400'>
-													{calendar.calendarType}
-												</span>
-											)}
-										</div>
-									</div>
-								))}
-								{calendarsData.calendars.length > 5 && (
-									<p className='text-sm text-gray-500 dark:text-gray-400 text-center py-2'>
-										And {calendarsData.calendars.length - 5} more calendars...
-									</p>
-								)}
-							</div>
-						</>
-					) : (
+					{
 						<div className='text-center py-4'>
 							<svg
 								className='w-8 h-8 mx-auto text-gray-400 dark:text-gray-600 mb-2'
@@ -173,7 +129,7 @@ export default function DashboardContent({
 								No calendars found for this location
 							</p>
 						</div>
-					)}
+					}
 					<div className='mt-4 pt-4 border-t border-gray-200 dark:border-gray-700'>
 						<Link
 							href='/calendars'
@@ -330,3 +286,48 @@ export default function DashboardContent({
 		</div>
 	);
 }
+
+// calendarsData.calendars.length > 0 ? (
+// 	<>
+// 		<p className='text-gray-700 dark:text-gray-300 mb-4'>
+// 			<span className='font-medium'>Total Calendars:</span>{" "}
+// 			{calendarsData?.calendars.length}
+// 		</p>
+// 		<div className='space-y-3 max-h-60 overflow-y-auto'>
+// 			{calendarsData?.calendars.slice(0, 5).map((calendar: any) => (
+// 				<div
+// 					key={calendar.id}
+// 					className='border-l-4 border-blue-500 pl-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-r'>
+// 					<h3 className='font-medium text-gray-900 dark:text-white'>
+// 						{calendar.name}
+// 					</h3>
+// 					{calendar.description && (
+// 						<p className='text-sm text-gray-600 dark:text-gray-400 mt-1'>
+// 							{calendar.description}
+// 						</p>
+// 					)}
+// 					<div className='flex items-center justify-between mt-2'>
+// 						<span
+// 							className={`inline-block px-2 py-1 text-xs rounded-full ${
+// 								calendar.isActive
+// 									? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+// 									: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+// 							}`}>
+// 							{calendar.isActive ? "Active" : "Inactive"}
+// 						</span>
+// 						{calendar.calendarType && (
+// 							<span className='text-xs text-gray-500 dark:text-gray-400'>
+// 								{calendar.calendarType}
+// 							</span>
+// 						)}
+// 					</div>
+// 				</div>
+// 			))}
+// 			{calendarsData?.calendars?.length > 5 && (
+// 				<p className='text-sm text-gray-500 dark:text-gray-400 text-center py-2'>
+// 					And {calendarsData?.calendars?.length - 5} more calendars...
+// 				</p>
+// 			)}
+// 		</div>
+// 	</>
+// ) :

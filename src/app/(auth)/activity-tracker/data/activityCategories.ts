@@ -17,6 +17,7 @@ export const activityCategories: LayoutData = {
 				type: "counter",
 			},
 		],
+		widgets: [],
 	},
 	appointmentStatus: {
 		title: "Appointment Status",
@@ -40,6 +41,7 @@ export const activityCategories: LayoutData = {
 				type: "counter",
 			},
 		],
+		widgets: [],
 	},
 	clientEngagement: {
 		title: "Client Engagement",
@@ -57,6 +59,7 @@ export const activityCategories: LayoutData = {
 				type: "counter",
 			},
 		],
+		widgets: [],
 	},
 	financialMetrics: {
 		title: "Financial Metrics",
@@ -68,5 +71,6 @@ export const activityCategories: LayoutData = {
 				type: "counter",
 			},
 		],
+		widgets: [],
 	},
 };

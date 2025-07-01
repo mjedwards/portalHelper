@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import GhlService from "@/utils/api/ghlService";
 import { NextRequest, NextResponse } from "next/server";
 

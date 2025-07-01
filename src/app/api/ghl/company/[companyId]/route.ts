@@ -4,10 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import GhlService from "@/utils/api/ghlService";
 import { isAuthenticated } from "@/utils/api/authUtils.server";
 
-export async function GET(
-	request: NextRequest,
-	{ params }: { params: { companyId: string } }
-) {
+export async function GET(request: NextRequest) {
 	try {
 		// Check if user is authenticated
 		const authenticated = await isAuthenticated();
@@ -16,7 +13,8 @@ export async function GET(
 		}
 
 		// Properly handle params for Next.js App Router
-		const { companyId } = params;
+		const { searchParams } = new URL(request.url);
+		const companyId = searchParams.get("companyId");
 
 		if (!companyId) {
 			return NextResponse.json(

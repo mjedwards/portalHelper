@@ -1,6 +1,8 @@
 /* eslint-disable prefer-const */
 // src/app/(auth)/dashboard/page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+export const dynamic = 'force-dynamic';
 import GhlService from "@/utils/api/ghlService";
 import { getDefaultLocation, getCompanyId } from "@/utils/api/authUtils.server";
 import LocationSelector from "./components/LocationSelector";

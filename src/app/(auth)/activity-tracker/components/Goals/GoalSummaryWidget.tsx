@@ -5,9 +5,16 @@ const GoalSummaryWidget: React.FC = () => {
 	const { activityCounts, goals, currentTimeFrame } = useActivityTracker();
 
 	// Get all activities with goals
-	const activitiesWithGoals = Object.keys(goals || {}).filter(
-		(activityId) => goals?.[activityId]?.[currentTimeFrame] > 0
-	);
+	// const activitiesWithGoals = Object.keys(goals || {}).filter(
+	// 	(activityId) => goals?.[activityId]?.[currentTimeFrame] > 0
+	// );
+	const activitiesWithGoals = Object.keys(goals || {}).filter((activityId) => {
+		if (!goals || !activityId) return false;
+		const activity = goals[activityId];
+		if (!activity || typeof activity !== "object") return false;
+		const goalValue = activity[currentTimeFrame];
+		return typeof goalValue === "number" && goalValue > 0;
+	});
 
 	// No goals set
 	if (activitiesWithGoals.length === 0) {

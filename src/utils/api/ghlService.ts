@@ -171,6 +171,7 @@ interface PaginationMeta {
 	startAfter?: string;
 	total?: number;
 	count?: number;
+	currentPage?: number;
 	hasMore?: boolean;
 }
 

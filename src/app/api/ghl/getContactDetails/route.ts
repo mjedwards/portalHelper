@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ContactDetailType } from "@/app/types/contact-details";
 import GhlService from "@/utils/api/ghlService";
 import { NextRequest, NextResponse } from "next/server";
