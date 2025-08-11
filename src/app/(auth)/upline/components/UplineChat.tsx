@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useUpline } from "@/hooks/useUpline";
 import { OBJECTION_SCENARIOS } from "@/utils/uplinePrompts";
+import { useUpline } from "@/hooks/useUpline";
 
 const MOCK_AGENT_ID = "agent-123";
 
