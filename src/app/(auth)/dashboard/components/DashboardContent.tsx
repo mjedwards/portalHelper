@@ -11,6 +11,8 @@ import {
 } from "../components/dashboard/types/dashboard";
 import { GhlClientService } from "@/utils/api/ghl.client.service";
 import PipelineStageCards from "./dashboard/PipelineStages/PipelineStageCards";
+// import QuickChat from "./dashboard/QuickChat";
+import UplineChat from "../../upline/components/UplineChat";
 
 export default function DashboardContent({
 	opportunitiesData: initialOpportunitiesData,
@@ -77,6 +79,9 @@ export default function DashboardContent({
 	// const handleOpportunitiesPageChange = ()=> {}
 	return (
 		<div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+			{/* AI Quick chat */}
+			<UplineChat />
+
 			{/* Opportunities Card */}
 			<OpportunitiesCard
 				opportunitiesData={opportunitiesData}
